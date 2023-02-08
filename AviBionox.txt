@@ -1,0 +1,750 @@
+using System;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace BIOKNOX
+{
+    public partial class Frm_Device : Form
+    {
+        Connection cn = new Connection();
+        Starter st = new Starter();
+        Funct fn = new Funct();
+        string dev_usability = "";
+        public Frm_Device()
+        {
+            InitializeComponent();
+        }
+
+        private void Frm_Device_Load(object sender, EventArgs e)
+        {
+            MDIStart parent = (MDIStart)this.MdiParent;
+            parent.mnu_master_attendance_device.Enabled = false;
+            this.clr();
+            this.dv_display();
+            dv.Width = this.Width - 18;
+            if (dev_usability == "1")
+            {
+                cmbshift.Enabled = false;
+                cmbdevicetp.Enabled = false;
+            }
+            else if (dev_usability == "2")
+            {
+                cmbdevicetp.Enabled = true;
+                cmbshift.Enabled = false;
+                cmbdevicetp.SelectedIndex = 2;
+            }
+            else if (dev_usability == "3")
+            {
+                cmbshift.Enabled = true;
+                cmbdevicetp.Enabled = false;
+            }
+        }
+
+        private void Frm_Device_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            DialogResult cnfr = MessageBox.Show("Are You Sure To Close The Screen.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (cnfr == DialogResult.Yes)
+            {
+                MDIStart parent = (MDIStart)this.MdiParent;
+                parent.mnu_master_attendance_device.Enabled = true;
+                e.Cancel = false;
+            }
+            else
+            {
+                e.Cancel = true;
+            }
+        }
+
+        private void Frm_Device_KeyDown(object sender, KeyEventArgs e)
+        {
+            MDIStart parent = (MDIStart)this.MdiParent;
+            if (e.KeyCode == Keys.F11)
+            {
+                e.Handled = true;
+                //if (st.editmode(Starter.usr_sl, parent.mnu_master_others_district.Name) == 1)
+                //{
+                Starter.comd_device = "M";
+                this.clr();
+                this.dv_display();
+                txt_search.Focus();
+                //}
+            }
+        }
+
+        private void Frm_Device_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            short keyascii = (short)Microsoft.VisualBasic.Strings.Asc(e.KeyChar);
+            if (keyascii == 27)
+            {
+                this.Close();
+            }
+        }
+
+        public void clr()
+        {
+            txtdevid.Text = "";
+            txtdevnm.Text = "";
+            txt_Devsrno.Text = "";
+            cmbmodel.Text = "";
+            cmblock.SelectedIndex = 0;
+            txt_IP.Text = "";
+            cmbaccesscontrol.SelectedIndex = 0;
+            cmbcntp.SelectedIndex = 0;
+            cmbdown.SelectedIndex = 0;
+            txtloc.Text = "";
+            cmbshift.Text = "";
+            cmbdevicetp.SelectedIndex = 0;
+            txt_search.Text = "";
+            txtdevicesl.Text = "0";
+            txtshiftcd.Text = "0";
+            txtmodelcd.Text= "0";
+            if (Starter.comd_device == "E")
+            {
+                this.Text = ("Device Master . . .(ENTRY MODE)");
+            }
+            if (Starter.comd_device == "M")
+            {
+                this.Text = ("Device Master . . .(EDIT MODE)");
+            }
+            if (Starter.comd_device == "D")
+            {
+                this.Text = ("Device Master . . .(DELETE MODE)");
+            }
+            if (Starter.comd_device == "V")
+            {
+                this.Text = ("Device Master . . .(VIEW MODE)");
+            }
+
+            DataSet dsreg = cn.GetData("SELECT COUNT(device_no) AS 'DeviceNo' FROM device_mst WHERE is_registration = 'Y' AND co_sl = " + Starter.co_sl + "");
+            if (dsreg.Tables[0].Rows.Count != 0)
+            {
+                chkregdvc.Visible = true;
+            }
+            if (dsreg.Tables[0].Rows.Count != 0)
+            {
+                chkregdvc.Checked = false;
+            }
+        }
+
+        private void dv_display()
+        {
+            DataSet ds_view = cn.GetData("SELECT device_mst.dev_id AS 'Device ID', device_mst.dev_nm AS 'Device Name', dvmodel.model_nm AS 'Model Name', device_mst.serial_no AS 'Serial No.', device_mst.ip_add AS 'IP Address', shift.shift_nm AS 'Shift Name', (CASE WHEN device_mst.in_out = 'I' THEN 'IN' WHEN device_mst.in_out = 'O' THEN 'OUT' WHEN device_mst.in_out = 'A' THEN 'Alternative IN/OUT' END)AS 'Device Type', device_mst.model_sl, device_mst.shift_sl, device_mst.rec_lock, device_mst.device_no FROM device_mst LEFT OUTER JOIN dvmodel ON device_mst.model_sl = dvmodel.model_sl LEFT OUTER JOIN shift ON device_mst.shift_sl = shift.shift_sl WHERE (device_mst.dev_nm LIKE '%" + (txt_search.Text.Trim()) + "%') ORDER BY device_mst.rec_lock, dvmodel.model_nm");
+            if (ds_view.Tables[0].Rows.Count != 0)
+            {
+                dv.DataSource = ds_view.Tables[0];
+                dv.Columns[0].Width = 100;
+                dv.Columns[1].Width = 120;
+                dv.Columns[2].Width = 150;
+                dv.Columns[3].Width = 140;
+                dv.Columns[4].Width = 130;
+                dv.Columns[5].Width = 120;
+                dv.Columns[6].Width = 110;
+                dv.Columns[7].Visible = false;
+                dv.Columns[8].Visible = false;
+                dv.Columns[9].Visible = false;
+                dv.Columns[10].Visible = false;
+                dv.ColumnHeadersDefaultCellStyle.Font = new Font("Arial Rounded MT Bold", 9.5F);
+            }
+            else
+            {
+                ds_view.Tables[0].Rows.Clear();
+                dv.DataSource = ds_view;
+            }
+        }
+
+        private void cmdexit_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void cmdfresh_Click(object sender, EventArgs e)
+        {
+            this.clr();
+            this.dv_display();
+            if (Starter.comd_device == "E")
+            {
+                txtdevnm.Focus();
+            }
+            else
+            {
+                dv.Focus();
+            }
+
+            if (dv.Width == 400)
+            {
+                while (dv.Width < this.Width - 18)
+                {
+                    dv.Width += 2;
+                }
+                panel3.Visible = false;
+            }
+        }
+
+        private void cmdedit_Click(object sender, EventArgs e)
+        {
+            MDIStart parent = (MDIStart)this.MdiParent;
+            //if (st.editmode(Starter.usr_sl, parent.mnu_master_others_district.Name) == 1)
+            //{
+            if (dv.RowCount != 0)
+            {
+                if (dv.SelectedRows.Count != 0)
+                {
+                    Starter.comd_device = "M";
+                    this.clr();
+                    dv.Focus();
+                    this.dv_select(int.Parse(dv.SelectedCells[10].Value.ToString()));
+                    if (dv.Width == this.Width - 18)
+                    {
+                        while (dv.Width > 400)
+                        {
+                            dv.Width += -2;
+                        }
+                        panel3.Visible = true;
+                    }
+                }
+                //}
+            }
+        }
+
+        private void cmdadd_Click(object sender, EventArgs e)
+        {
+            MDIStart parent = (MDIStart)this.MdiParent;
+            //if (st.entrymode(Starter.usr_sl, parent.mnu_master_others_district.Name) == 1)
+            //{
+            Starter.comd_device = "E";
+            this.clr();
+            if (dv.Width == this.Width - 18)
+            {
+                while (dv.Width > 400)
+                {
+                    dv.Width += -2;
+                }
+                panel3.Visible = true;
+            }
+            txtdevid.Focus();
+            //}
+        }
+
+        private void cmdsave_Click(object sender, EventArgs e)
+        {
+            if (Starter.comd_device != "V")
+            {
+                if (dv.Width != this.Width - 18)
+                {
+                    if (txtdevid.Text.Trim() == "")
+                    {
+                        MessageBox.Show("The Device ID Should Not Be Blank.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txtdevid.Focus();
+                        return;
+                    }
+                    if (txt_Devsrno.Text.Trim() == "")
+                    {
+                        MessageBox.Show("The Device Number Should Not Be Blank.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txt_Devsrno.Focus();
+                        return;
+                    }
+                    if (cmbmodel.Text.Trim() == "" || int.Parse(txtmodelcd.Text.ToString()) == 0)
+                    {
+                        MessageBox.Show("Please Select A Device Model Name.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        cmbmodel.Focus();
+                        return;
+                    }
+                    if (txt_IP.Text.Trim() == "")
+                    {
+                        MessageBox.Show("Sorry The IP Address Should NOT Be Blank.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txt_IP.Focus();
+                        return;
+                    }
+
+                    this.save_record();
+                    if (Starter.comd_district == "E")
+                    {
+                        txtdevnm.Focus();
+                    }
+                    else
+                    {
+                        dv.Focus();
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("Invalid User Authentication.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void save_record()
+        {
+            //For Entry Section
+            string chk = "";
+
+            if(chkregdvc.Checked == true)
+            {
+                chk = "Y";
+            }
+            else
+            {
+                chk = "N";
+            }
+            if (Starter.comd_device == "E")
+            {
+                DialogResult cnfr1 = MessageBox.Show("Are You Sure To Save The Record.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1);
+                if (cnfr1 == DialogResult.Yes)
+                {
+                    DataSet ds1 = cn.GetData("SELECT dev_id FROM device_mst WHERE dev_id = " + int.Parse(txtdevid.Text) + "");
+                    if (ds1.Tables[0].Rows.Count != 0)
+                    {
+                        MessageBox.Show("Sorry The Device Number Is Already Present.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        DataSet ds2 = cn.GetData("SELECT MAX(device_mst.device_no)as maxcd FROM device_mst");
+                        int devicemx = 1;
+                        if (!DBNull.Value.Equals(ds2.Tables[0].Rows[0][0]))
+                        {
+                            devicemx = int.Parse(ds2.Tables[0].Rows[0][0].ToString()) + 1;
+                            txtdevicesl.Text = devicemx.ToString();
+                        }
+                        cn.start();
+                        cn.Execute("INSERT INTO device_mst(device_no, ip_add, created_by, created_dt," +
+                        "modified_by, modified_dt, dev_nm, dev_id, dev_loc, conn_tp, down_tp, model_sl," +
+                        "loc_img, serial_no, access_control, in_out, shift_sl, rec_lock, co_sl," +
+                        "geo_positioning_required, device_geo_latitude, device_geo_longitude, is_registration," +
+                        "LastLogDownloadDate) VALUES(" + int.Parse(txtdevicesl.Text) + ", '" +
+                        txt_IP.Text.Trim() + "', " + Starter.usr_sl + ", GETDATE(), 0, '', '" + txtdevnm.Text.Trim() + 
+                        "', " + int.Parse(txtdevid.Text) + ", '" + txtloc.Text.Trim() + "', '" + cmbcntp.Text.Substring(0, 1) + 
+                        "', '" + cmbdown.Text.Substring(0, 1) + "', " + int.Parse(txtmodelcd.Text) + 
+                        ", '', '" + txt_Devsrno.Text.Trim() + "', '" + cmbaccesscontrol.Text.Substring(0, 1) + 
+                        "', '" + cmbdevicetp.Text.Substring(0, 1) + "', " + int.Parse(txtshiftcd.Text) + 
+                        ", '" + cmblock.Text.Substring(0, 1) + "', " + Starter.co_sl + ", 'N', '', '', '" + chk + "', '')");
+
+                        //INSERTING INTO DEVICES
+                        cn.Execute("INSERT INTO devices(DeviceFName, DeviceSName, DeviceDirection, serialnumber, " +
+                        "ConnectionType, IpAddress, BaudRate, CommKey,ComPort, LastLogDownloadDate, C1, C2, C3," +
+                        " C4, C5, C6, C7, TransactionStamp, LastPing, DeviceType, OpStamp, DownLoadType, TimeZone," +
+                        "DeviceLocation, TimeOut) VALUES('" + txtdevnm.Text.Trim() + "', '" + txtdevnm.Text.Trim() + 
+                        "', 'altinout', '" + txt_Devsrno.Text.Trim() + "', '" + cmbcntp.Text.Substring(0, 1) + 
+                        "', '" + txt_IP.Text.Trim() + "', '', 0, '', GETDATE(), '', '', '', '', '', '', '', '', GETDATE(), '', '', " +
+                        " '" + cmbdown.Text.Substring(0, 1) + "', '330', '" + txtloc.Text.Trim() + "', '300')");
+                        cn.close();
+                        MessageBox.Show("Record Added Successfully . . .", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
+                    this.clr();
+                    this.dv_display();
+                    txtdevid.Focus();
+                }
+            }
+
+            //For Modification Section
+            if (Starter.comd_device == "M")
+            {
+                DialogResult cnfr2 = MessageBox.Show("Are You Sure To Modify The Record.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+                if (cnfr2 == DialogResult.Yes)
+                {
+                    DataSet ds3 = cn.GetData("SELECT dev_id FROM device_mst WHERE device_no = " + int.Parse(txtdevicesl.Text) + "");
+                    if (ds3.Tables[0].Rows.Count != 0)
+                    {
+                        cn.start();
+                        cn.Execute("UPDATE device_mst SET ip_add = '" + txt_IP.Text.Trim() +
+                        "', dev_nm = '" + txtdevnm.Text.Trim() + "', dev_id = " + int.Parse(txtdevid.Text) +
+                        ", dev_loc = '" + txtloc.Text.Trim() + "', down_tp = '" + cmbdown.Text.Substring(0, 1) +
+                        "', model_sl = " + int.Parse(txtmodelcd.Text) + ", serial_no = '" + txt_Devsrno.Text.Trim() +
+                        "', access_control = '" + cmbaccesscontrol.Text.Substring(0, 1) + 
+                        "', in_out = '" + cmbdevicetp.Text.Substring(0, 1) + "', shift_sl = " + int.Parse(txtshiftcd.Text) + 
+                        ", rec_lock = '" + cmblock.Text.Substring(0, 1) + "', conn_tp = '" + cmbcntp.Text.Substring(0, 1) +
+                        "', is_registration = '" + chk + "', modified_by = " + Starter.usr_sl + 
+                        ", modified_dt = GETDATE() WHERE device_no = " + int.Parse(txtdevicesl.Text) + "");
+                        cn.close();
+
+                        MessageBox.Show("Record Modified Successfully . . .", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
+                }
+                this.clr();
+                this.dv_display();
+                dv.Focus();
+            }
+            if (Starter.usr_tp == "O")
+            {
+                MessageBox.Show("Invalid User Authentication", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+        }
+
+        private void sender_MouseEnter(object sender, EventArgs e)
+        {
+            Control control = sender as Control;
+            control.ForeColor = Color.Blue;
+        }
+
+        private void sender_MouseLeave(object sender, EventArgs e)
+        {
+            Control control = sender as Control;
+            control.ForeColor = Color.Black;
+        }
+
+        private void sender_Enter(object sender, EventArgs e)
+        {
+            Control control = sender as Control;
+            control.BackColor = Color.LightGoldenrodYellow;
+            control.ForeColor = Color.Red;
+        }
+
+        private void sender_Leave(object sender, EventArgs e)
+        {
+            Control control = sender as Control;
+            control.BackColor = Color.White;
+            control.ForeColor = Color.Black;
+        }
+
+        private void txt_search_TextChanged(object sender, EventArgs e)
+        {
+            this.dv_display();
+        }
+
+        private void dv_select(int device_sl)
+        {
+            DataSet ds = cn.GetData("SELECT device_mst.*, ISNULL(dvmodel.model_nm,'') AS 'model_nm', ISNULL(shift.shift_nm,'') AS 'shift_nm' FROM device_mst LEFT OUTER JOIN dvmodel ON device_mst.model_sl = dvmodel.model_sl LEFT OUTER JOIN shift ON device_mst.shift_sl = shift.shift_sl WHERE (device_mst.device_no = " + device_sl + ")");
+            if (ds.Tables[0].Rows.Count != 0)
+            {
+                txt_Devsrno.Text = ds.Tables[0].Rows[0]["serial_no"].ToString();
+                txtdevicesl.Text = ds.Tables[0].Rows[0]["device_no"].ToString();
+                txtdevnm.Text = ds.Tables[0].Rows[0]["dev_nm"].ToString();
+                txtdevid.Text = ds.Tables[0].Rows[0]["dev_id"].ToString();
+                txt_IP.Text = ds.Tables[0].Rows[0]["ip_add"].ToString();
+                txtloc.Text = ds.Tables[0].Rows[0]["dev_loc"].ToString();
+                cmbcntp.SelectedIndex = int.Parse(ds.Tables[0].Rows[0]["conn_tp"].ToString()) - 1;
+                if (ds.Tables[0].Rows[0]["down_tp"].ToString() == "1")
+                {
+                    cmbdown.SelectedIndex = 0;
+                }
+                if (ds.Tables[0].Rows[0]["access_control"].ToString() == "N")
+                {
+                    cmbaccesscontrol.SelectedIndex = 0;
+                }
+                else
+                {
+                    cmbaccesscontrol.SelectedIndex = 1;
+                }
+                if (ds.Tables[0].Rows[0]["rec_lock"].ToString() == "N")
+                {
+                    cmblock.SelectedIndex = 0;
+                }
+                else
+                {
+                    cmblock.SelectedIndex = 1;
+                }
+                if (ds.Tables[0].Rows[0]["in_out"].ToString() == "I")
+                {
+                    cmbdevicetp.SelectedIndex = 0;
+                }
+                else if (ds.Tables[0].Rows[0]["in_out"].ToString() == "O")
+                {
+                    cmbdevicetp.SelectedIndex = 1;
+                }
+                else
+                {
+                    cmbdevicetp.SelectedIndex = 2;
+                }
+                cmbmodel.Text = ds.Tables[0].Rows[0]["model_nm"].ToString();
+                txtmodelcd.Text = ds.Tables[0].Rows[0]["model_sl"].ToString();
+                cmbshift.Text = ds.Tables[0].Rows[0]["shift_nm"].ToString();
+                if (ds.Tables[0].Rows[0]["is_registration"].ToString() == "Y")
+                {
+                    chkregdvc.Visible = true;
+                    chkregdvc.Checked = true;
+                }
+                else
+                {
+                    cmblock.SelectedIndex = 1;
+                }
+                DataSet dsreg = cn.GetData("SELECT COUNT(device_no) AS 'DeviceNo' FROM device_mst WHERE is_registration = 'Y' AND co_sl = " + Starter.co_sl + "");
+                if (dsreg.Tables[0].Rows.Count != 0)
+                {
+                    chkregdvc.Visible = true;
+                    if (dsreg.Tables[0].Rows.Count != 0)
+                    {
+                        chkregdvc.Visible = false;
+                    }
+                }
+            }
+            dv.Focus();
+        }
+
+        private void dv_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(txtdevnm, e);
+        }
+
+        private void dv_Click(object sender, EventArgs e)
+        {
+            this.dv_key_View();
+        }
+
+        private void dv_KeyDown(object sender, KeyEventArgs e)
+        {
+            this.dv_key_View();
+        }
+
+        private void dv_KeyUp(object sender, KeyEventArgs e)
+        {
+            this.dv_key_View();
+        }
+
+        private void dv_key_View()
+        {
+            if (Starter.comd_device != "E")
+            {
+                if (dv.Rows.Count != 0)
+                {
+                    if (dv.SelectedRows.Count != 0)
+                    {
+                        this.dv_select(int.Parse(dv.SelectedCells[10].Value.ToString()));
+                    }
+                }
+            }
+        }
+
+        private void txtdevid_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(txtdevnm, e);
+            fn.SPkey(e);
+            fn.NUMkey(e);
+        }
+
+        private void txtdevnm_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(txt_Devsrno, e);
+            fn.SPkey(e);
+        }
+
+        private void txt_Devsrno_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(cmbmodel, e);
+            fn.SPkey(e);
+        }
+
+        private void cmbmodel_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(txt_IP, e);
+            fn.SPkey(e);
+        }
+
+        private void txt_IP_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(cmbcntp, e);
+            fn.SPkey(e);
+        }
+
+        private void cmbaccesscontrol_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(txtloc, e);
+            fn.SPkey(e);
+        }
+
+        private void txtloc_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (cmbshift.Enabled == false)
+            {
+                fn.Key(cmbdevicetp, e);
+                fn.SPkey(e);
+            }
+            else
+            {
+                fn.Key(cmbshift, e);
+                fn.SPkey(e);
+            }
+            
+        }
+
+        private void cmbshift_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            //if(cmbdevicetp.Enabled == false)
+            //{
+                fn.Key(cmblock, e);
+                fn.SPkey(e);
+            //}
+        }
+
+        private void cmbdevicetp_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(cmblock, e);
+            fn.SPkey(e);
+        }
+
+        private void cmblock_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            fn.Key(cmdsave, e);
+            fn.SPkey(e);
+        }
+
+        private void cmbmodel_GotFocus(object sender, EventArgs e)
+        {
+            cmbmodel.Height = 100;
+            fn.populate(cmbmodel, txtmodelcd, "SELECT model_nm FROM dvmodel ORDER BY model_nm");
+        }
+
+        private void cmbmodel_LostFocus(object sender, EventArgs e)
+        {
+            cmbmodel.Height = 21;
+        }
+
+        private void cmbshift_GotFocus(object sender, EventArgs e)
+        {
+            cmbshift.Height = 100;
+            fn.populate(cmbshift, txtshiftcd, "SELECT shift_nm FROM shift ORDER BY shift_nm");
+        }
+
+        private void cmbshift_LostFocus(object sender, EventArgs e)
+        {
+            cmbshift.Height = 21;
+        }
+
+        private void cmbmodel_Validated(object sender, EventArgs e)
+        {
+            fn.validated(txtmodelcd, "SELECT model_sl FROM dvmodel WHERE model_nm = '" + cmbmodel.Text.Trim() + "'");
+        }
+
+        private void cmbmodel_Validating(object sender, CancelEventArgs e)
+        {
+            fn.validating(cmbmodel, "SELECT model_nm FROM dvmodel WHERE model_nm = '" + cmbmodel.Text.Trim() + "'", "Please Select A Valid Model Name.");
+        }
+
+        private void cmbshift_Validated(object sender, EventArgs e)
+        {
+            fn.validated(txtshiftcd, "SELECT shift_sl FROM shift WHERE shift_nm = '" + cmbshift.Text.Trim() + "'");
+        }
+
+        private void cmbshift_Validating(object sender, CancelEventArgs e)
+        {
+            fn.validating(cmbshift, "SELECT shift_nm FROM shift WHERE shift_nm = '" + cmbshift.Text.Trim() + "'", "Please Select A Valid Shift Name.");
+        }
+
+        private void txtdevnm_Validating(object sender, CancelEventArgs e)
+        {
+            if (Starter.comd_device == "M")
+            {
+                if (txtdevnm.Text.Trim() != "")
+                {
+                    DataSet ds1 = cn.GetData("SELECT * FROM device_mst WHERE dev_nm = " + txtdevnm.Text.Trim() + "");
+                    if (ds1.Tables[0].Rows.Count != 0)
+                    {
+                        if (ds1.Tables[0].Rows[0]["dev_nm"].ToString() == txtdevnm.Text.Trim())
+                        {
+                            e.Cancel = false;
+                        }
+                        else
+                        {
+                            DataSet ds2 = cn.GetData("SELECT dev_nm FROM device_mst WHERE dev_nm = '" + txtdevnm.Text.Trim() + "'");
+                            if (ds2.Tables[0].Rows.Count != 0)
+                            {
+                                txtdevnm.Focus();
+                                e.Cancel = true;
+                                MessageBox.Show("The Device Name is Already Present.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                txtdevnm.Text = "";
+                            }
+                            else
+                            {
+                                e.Cancel = false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        txtdevnm.Focus();
+                        e.Cancel = true;
+                        MessageBox.Show("Please Select A Valid Device Name.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txtdevnm.Text = "";
+                    }
+                }
+            }
+            else
+            
+                if (txtdevnm.Text.Trim() != "")
+                {
+                    DataSet ds3 = cn.GetData("SELECT dev_nm FROM device_mst WHERE dev_nm = '" + txtdevnm.Text.Trim() + "'");
+                    if (ds3.Tables[0].Rows.Count != 0)
+                    {
+                        txtdevnm.Focus();
+                        e.Cancel = true;
+                        MessageBox.Show("Sorry The Device Name Is Already Present.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txtdevnm.Text = "";
+                    }
+                    else
+                    {
+                        e.Cancel = false;
+                    }
+            }
+            else
+            {
+                e.Cancel = false;
+            }
+            
+        }
+
+        private void txtdevid_Validating(object sender, CancelEventArgs e)
+        {
+            if (Starter.comd_device == "M")
+            {
+                if (txtdevid.Text.Trim() != "" && int.Parse(txtdevicesl.Text) != 0)
+                {
+                    DataSet ds1 = cn.GetData("SELECT dev_id FROM device_mst WHERE device_no = " + int.Parse(txtdevicesl.Text) + "");
+                    if (ds1.Tables[0].Rows.Count != 0)
+                    {
+                        if (ds1.Tables[0].Rows[0]["dev_id"].ToString() == txtdevid.Text.Trim())
+                        {
+                            e.Cancel = false;
+                        }
+                        else
+                        {
+                            DataSet ds2 = cn.GetData("SELECT dev_id FROM device_mst WHERE dev_id = '" + txtdevid.Text.Trim() + "'");
+                            if (ds2.Tables[0].Rows.Count != 0)
+                            {
+                                txtdevid.Focus();
+                                e.Cancel = true;
+                                MessageBox.Show("The Device ID is Already Present.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                txtdevid.Text = "";
+                            }
+                            else
+                            {
+                                e.Cancel = false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        txtdevid.Focus();
+                        e.Cancel = true;
+                        MessageBox.Show("Please Select A Valid Device ID.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txtdevid.Text = "";
+                    }
+                }
+            }
+            else
+            {
+                if (txtdevid.Text.Trim() != "")
+                {
+                    DataSet ds3 = cn.GetData("SELECT dev_id FROM device_mst WHERE dev_id = '" + txtdevid.Text.Trim() + "'");
+                    if (ds3.Tables[0].Rows.Count != 0)
+                    {
+                        txtdevid.Focus();
+                        e.Cancel = true;
+                        MessageBox.Show("Sorry The Device ID Is Already Present.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        txtdevid.Text = "";
+                    }
+                    else
+                    {
+                        e.Cancel = false;
+                    }
+                }
+                else
+                {
+                    e.Cancel = false;
+                }
+            }
+        }
+    }
+}
